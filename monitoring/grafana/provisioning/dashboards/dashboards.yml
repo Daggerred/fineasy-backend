@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'AI Backend Dashboards'
+    orgId: 1
+    folder: 'AI Backend'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

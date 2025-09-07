@@ -1,0 +1,155 @@
+groups:
+- name: ai-backend-alerts
+  rules:
+  # Service availability alerts
+  - alert: AIBackendDown
+    expr: up{job="ai-backend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "AI Backend service is down"
+      description: "AI Backend service has been down for more than 1 minute"
+
+  - alert: AIBackendHighErrorRate
+    expr: rate(http_requests_total{job="ai-backend",status=~"5.."}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate in AI Backend"
+      description: "AI Backend error rate is {{ $value }} errors per second"
+
+  # Performance alerts
+  - alert: AIBackendHighResponseTime
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="ai-backend"}[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time in AI Backend"
+      description: "95th percentile response time is {{ $value }}s"
+
+  - alert: AIBackendHighMemoryUsage
+    expr: process_resident_memory_bytes{job="ai-backend"} / 1024 / 1024 / 1024 > 1.5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage in AI Backend"
+      description: "Memory usage is {{ $value }}GB"
+
+  # Database alerts
+  - alert: DatabaseConnectionFailed
+    expr: ai_backend_component_health{component="database"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Database connection failed"
+      description: "AI Backend cannot connect to database"
+
+  - alert: DatabaseHighResponseTime
+    expr: ai_backend_component_response_time_ms{component="database"} > 1000
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High database response time"
+      description: "Database response time is {{ $value }}ms"
+
+  # Cache alerts
+  - alert: RedisDown
+    expr: ai_backend_component_health{component="redis"} == 0
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Redis cache is down"
+      description: "Redis cache service is not responding"
+
+  - alert: LowCacheHitRate
+    expr: ai_backend_cache_hit_rate < 0.5
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low cache hit rate"
+      description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+  # ML Model alerts
+  - alert: MLModelsNotLoaded
+    expr: ai_backend_component_health{component="ml_models"} == 0
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "ML models not loaded"
+      description: "No ML models are currently loaded"
+
+  - alert: ModelAccuracyDegraded
+    expr: ai_backend_model_accuracy < 0.7
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Model accuracy degraded"
+      description: "Model {{ $labels.model }} accuracy is {{ $value | humanizePercentage }}"
+
+  # Resource alerts
+  - alert: HighCPUUsage
+    expr: rate(process_cpu_seconds_total{job="ai-backend"}[5m]) > 0.8
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is {{ $value | humanizePercentage }}"
+
+  - alert: DiskSpaceLow
+    expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Low disk space"
+      description: "Disk space is {{ $value | humanizePercentage }} full"
+
+- name: business-logic-alerts
+  rules:
+  # Business logic alerts
+  - alert: HighFraudDetectionRate
+    expr: rate(fraud_alerts_total[1h]) > 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High fraud detection rate"
+      description: "Fraud detection rate is {{ $value }} alerts per hour"
+
+  - alert: PredictiveAnalyticsFailure
+    expr: rate(predictive_analytics_errors_total[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Predictive analytics failures"
+      description: "Predictive analytics error rate is {{ $value }} per second"
+
+  - alert: ComplianceCheckFailures
+    expr: rate(compliance_check_errors_total[5m]) > 0.05
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Compliance check failures"
+      description: "Compliance check error rate is {{ $value }} per second"
+
+  - alert: NLPProcessingErrors
+    expr: rate(nlp_processing_errors_total[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "NLP processing errors"
+      description: "NLP processing error rate is {{ $value }} per second"
