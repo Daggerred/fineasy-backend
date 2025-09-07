@@ -12,30 +12,32 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies including build tools and libraries
 RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    make \
+    adduser \
     curl \
-    wget \
+    g++ \
+    gcc \
     git \
-    pkg-config \
     libffi-dev \
-    libssl-dev \
-    libjpeg-dev \
-    libpng-dev \
     libfreetype6-dev \
+    libfribidi-dev \
+    libharfbuzz-dev \
+    libjpeg-dev \
     liblcms2-dev \
+    libmagic-dev \
+    libmagic1 \
     libopenjp2-7-dev \
+    libpng-dev \
+    libpq-dev \
+    libssl-dev \
     libtiff5-dev \
     libwebp-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
     libxcb1-dev \
-    libpq-dev \
-    libmagic1 \
-    libmagic-dev \
+    make \
+    passwd \
+    pkg-config \
     redis-tools \
     supervisor \
+    wget \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -54,7 +56,7 @@ RUN mkdir -p /app/uploads /app/logs /app/cache /app/temp && \
     chmod 755 /app/uploads /app/logs /app/cache /app/temp
 
 # Create non-root user for security
-RUN useradd --create-home --shell /bin/bash app && \
+RUN addgroup --system app && adduser --system --ingroup app app && \
     chown -R app:app /app
 USER app
 
