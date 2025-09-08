@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     
     # Redis Configuration (Optional - for caching)
     REDIS_URL: str = "redis://localhost:6379"
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
+    REDISHOST: str = "localhost"
+    REDISPORT: int = 6379
     REDIS_TTL_HOURS: int = 24
     ENABLE_REDIS: bool = False  # Optional caching
     
