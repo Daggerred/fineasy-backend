@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 
 
 class DateTimeEncoder(json.JSONEncoder):
-    """Custom JSON encoder for datetime objects"""
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
@@ -30,12 +29,10 @@ security = HTTPBearer()
 
 
 async def background_generate_insights(business_id: str):
-    """Background task to generate and cache insights"""
     try:
         analyzer = PredictiveAnalyzer()
         result = await analyzer.generate_insights(business_id)
-        
-        # Cache the result
+
         cache_key = f"insights:{business_id}"
         await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=86400)  # 24 hours in seconds
         
@@ -49,9 +46,8 @@ async def get_business_insights(
     business_id: str,
     background_tasks: BackgroundTasks,
     force_refresh: bool = Query(False, description="Force refresh insights"),
-    token: str = Depends(security)
-):
-    """Get business insights for a business with caching"""
+    token: str = Depends(security)):
+    """Caching code aaa soo jaa bhai for business insights"""
     try:
         # Verify authentication (bypass for development)
         user_id = await verify_token(token.credentials if hasattr(token, 'credentials') else str(token))
@@ -61,14 +57,12 @@ async def get_business_insights(
             user_id = "dev_user"
         
         cache_key = f"insights:{business_id}"
-        
-        # Check cache first unless force refresh is requested
+
         if not force_refresh:
             cached_result = await cache.get(cache_key)
             if cached_result:
                 logger.info(f"Returning cached insights for business: {business_id}")
                 try:
-                    # Debug: check what type of data we got from cache
                     logger.debug(f"Cached result type: {type(cached_result)}")
                     if hasattr(cached_result, '__name__'):
                         logger.debug(f"Cached result name: {cached_result.__name__}")
@@ -82,21 +76,23 @@ async def get_business_insights(
                 except Exception as e:
                     logger.error(f"Error parsing cached result: {e}, clearing cache")
                     await cache.delete(cache_key)
-        
-        # Generate insights
         analyzer = PredictiveAnalyzer()
         result = await analyzer.generate_insights(business_id)
         
-        # Cache the result
-        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=86400)  # 24 hours in seconds
-        
-        # Schedule background refresh for next time
+
+        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=86400)  
+
         background_tasks.add_task(background_generate_insights, business_id)
         
         return result
         
     except HTTPException:
         raise
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            logger.error(f"Business not found: {business_id}")
+            raise HTTPException(status_code=404, detail=f"Business with ID {business_id} not found")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Business insights error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -108,7 +104,7 @@ async def generate_insights(
     background_tasks: BackgroundTasks,
     token: str = Depends(security)
 ):
-    """Generate new business insights and invalidate cache"""
+
     try:
         # Verify authentication (bypass for development)
         user_id = await verify_token(token.credentials if hasattr(token, 'credentials') else str(token))
@@ -117,24 +113,28 @@ async def generate_insights(
             logger.warning(f"Authentication bypassed for development - business_id: {business_id}")
             user_id = "dev_user"
         
-        # Clear existing cache
+     
         cache_key = f"insights:{business_id}"
         await cache.delete(cache_key)
         
-        # Generate fresh insights
+
         analyzer = PredictiveAnalyzer()
         result = await analyzer.generate_insights(business_id)
         
-        # Cache the new result
-        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=86400)  # 24 hours in seconds
-        
-        # Schedule background refresh
+
+        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=86400)  
+
         background_tasks.add_task(background_generate_insights, business_id)
         
         return result
         
     except HTTPException:
         raise
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            logger.error(f"Business not found: {business_id}")
+            raise HTTPException(status_code=404, detail=f"Business with ID {business_id} not found")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Insight generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -146,27 +146,22 @@ async def get_cash_flow_prediction(
     months: int = Query(3, ge=1, le=12, description="Number of months to predict"),
     token: str = Depends(security)
 ):
-    """Get cash flow prediction with caching"""
     try:
-        # Verify authentication
         user_id = await verify_token(token)
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid authentication token")
         
         cache_key = f"cash_flow:{business_id}:{months}"
-        
-        # Check cache first
+
         cached_result = await cache.get(cache_key)
         if cached_result:
             logger.info(f"Returning cached cash flow prediction for business: {business_id}")
             return CashFlowPrediction(**json.loads(cached_result))
-        
-        # Generate prediction
+ 
         analyzer = PredictiveAnalyzer()
         result = await analyzer.predict_cash_flow(business_id, months)
-        
-        # Cache the result for 6 hours (shorter TTL for predictions)
-        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=21600)  # 6 hours in seconds
+
+        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=21600)
         
         return result
         
@@ -182,7 +177,7 @@ async def get_customer_analysis(
     business_id: str,
     token: str = Depends(security)
 ):
-    """Get customer revenue analysis with caching"""
+
     try:
         # Verify authentication
         user_id = await verify_token(token)
@@ -197,12 +192,12 @@ async def get_customer_analysis(
             logger.info(f"Returning cached customer analysis for business: {business_id}")
             return CustomerAnalysis(**json.loads(cached_result))
         
-        # Generate analysis
+
         analyzer = PredictiveAnalyzer()
         result = await analyzer.analyze_customer_revenue(business_id)
         
-        # Cache the result for 12 hours
-        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=43200)  # 12 hours in seconds
+
+        await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=43200)  
         
         return result
         
@@ -218,26 +213,24 @@ async def get_working_capital_analysis(
     business_id: str,
     token: str = Depends(security)
 ):
-    """Get working capital analysis with caching"""
+
     try:
-        # Verify authentication
+
         user_id = await verify_token(token)
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid authentication token")
         
         cache_key = f"working_capital:{business_id}"
         
-        # Check cache first
+
         cached_result = await cache.get(cache_key)
         if cached_result:
             logger.info(f"Returning cached working capital analysis for business: {business_id}")
             return WorkingCapitalAnalysis(**json.loads(cached_result))
         
-        # Generate analysis
         analyzer = PredictiveAnalyzer()
         result = await analyzer.calculate_working_capital_trend(business_id)
-        
-        # Cache the result for 8 hours
+       
         await cache.set(cache_key, json.dumps(result.dict(), cls=DateTimeEncoder), ex=28800)  # 8 hours in seconds
         
         return result
@@ -254,7 +247,7 @@ async def clear_insights_cache(
     business_id: str,
     token: str = Depends(security)
 ):
-    """Clear all cached insights for a business"""
+
     try:
         # Verify authentication
         user_id = await verify_token(token)
@@ -294,7 +287,7 @@ async def batch_generate_insights(
     background_tasks: BackgroundTasks,
     token: str = Depends(security)
 ):
-    """Generate insights for multiple businesses in background"""
+
     try:
         # Verify authentication
         user_id = await verify_token(token)

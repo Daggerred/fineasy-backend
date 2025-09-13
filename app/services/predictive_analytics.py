@@ -33,6 +33,12 @@ class PredictiveAnalyzer:
         logger.info(f"Generating insights for business: {business_id}")
         
         try:
+            # First validate that the business exists
+            business_data = await self.db.get_business_data(business_id)
+            if not business_data:
+                logger.error(f"Business not found: {business_id}")
+                raise ValueError(f"Business with ID {business_id} not found")
+            
             insights = []
             
             # Generate cash flow insights
