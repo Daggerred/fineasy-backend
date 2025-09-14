@@ -1,6 +1,7 @@
 """
 FastAPI application for AI-powered business intelligence
 """
+# TO:DO Uvicorn to be fixed and merged with Dockerfile and deployment scripts
 from fastapi import FastAPI, HTTPException, Depends, Request, Response, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
@@ -46,56 +47,74 @@ try:
 except ImportError:
     get_retention_manager = None
 
-# Import API modules with error handling
+# Import API modules with detailed error handling
+print("Starting API module imports...")
+
+# Import individual modules with detailed logging
 try:
-    from .api import fraud, insights, compliance, invoice, ml_engine, notifications, cache_management, health, feature_flags, models
+    from .api import health
+    print("✅ Health module imported successfully")
 except ImportError as e:
-    logger.warning(f"Some API modules could not be imported: {e}")
-    # Import individual modules with fallbacks
-    try:
-        from .api import health
-    except ImportError:
-        health = None
-    
-    try:
-        from .api import fraud
-    except ImportError:
-        fraud = None
-    
-    try:
-        from .api import insights
-    except ImportError:
-        insights = None
-    
-    try:
-        from .api import compliance
-    except ImportError:
-        compliance = None
-    
-    try:
-        from .api import invoice
-    except ImportError:
-        invoice = None
-    
-    try:
-        from .api import ml_engine
-    except ImportError:
-        ml_engine = None
-    
-    try:
-        from .api import notifications
-    except ImportError:
-        notifications = None
-    
-    try:
-        from .api import cache_management
-    except ImportError:
-        cache_management = None
-    
-    try:
-        from .api import feature_flags
-    except ImportError:
-        feature_flags = None
+    print(f"❌ Health module import failed: {e}")
+    health = None
+
+try:
+    from .api import fraud
+    print("✅ Fraud module imported successfully")
+except ImportError as e:
+    print(f"❌ Fraud module import failed: {e}")
+    fraud = None
+
+try:
+    from .api import insights
+    print("✅ Insights module imported successfully")
+except ImportError as e:
+    print(f"❌ Insights module import failed: {e}")
+    insights = None
+
+try:
+    from .api import compliance
+    print("✅ Compliance module imported successfully")
+except ImportError as e:
+    print(f"❌ Compliance module import failed: {e}")
+    compliance = None
+
+try:
+    from .api import invoice
+    print("✅ Invoice module imported successfully")
+except ImportError as e:
+    print(f"❌ Invoice module import failed: {e}")
+    invoice = None
+
+try:
+    from .api import ml_engine
+    print("✅ ML Engine module imported successfully")
+except ImportError as e:
+    print(f"❌ ML Engine module import failed: {e}")
+    ml_engine = None
+
+try:
+    from .api import notifications
+    print("✅ Notifications module imported successfully")
+except ImportError as e:
+    print(f"❌ Notifications module import failed: {e}")
+    notifications = None
+
+try:
+    from .api import cache_management
+    print("✅ Cache Management module imported successfully")
+except ImportError as e:
+    print(f"❌ Cache Management module import failed: {e}")
+    cache_management = None
+
+try:
+    from .api import feature_flags
+    print("✅ Feature Flags module imported successfully")
+except ImportError as e:
+    print(f"❌ Feature Flags module import failed: {e}")
+    feature_flags = None
+
+print("API module imports completed.")
 
 
 # Configure logging
@@ -458,24 +477,70 @@ app.add_middleware(
 # Security
 security = HTTPBearer()
 
-# Include API routers with error handling
+# Include API routers with detailed logging
+print("Starting router inclusion...")
+
 if health:
-    app.include_router(health.router, tags=["health"])
+    try:
+        app.include_router(health.router, tags=["health"])
+        print("✅ Health router included")
+    except Exception as e:
+        print(f"❌ Health router inclusion failed: {e}")
+else:
+    print("⚠️  Health module not available")
 
 if fraud:
-    app.include_router(fraud.router, tags=["fraud"])
+    try:
+        app.include_router(fraud.router, tags=["fraud"])
+        print("✅ Fraud router included")
+    except Exception as e:
+        print(f"❌ Fraud router inclusion failed: {e}")
+else:
+    print("⚠️  Fraud module not available")
 
 if insights:
-    app.include_router(insights.router, tags=["insights"])
+    try:
+        app.include_router(insights.router, tags=["insights"])
+        print("✅ Insights router included")
+    except Exception as e:
+        print(f"❌ Insights router inclusion failed: {e}")
+else:
+    print("⚠️  Insights module not available")
 
 if compliance:
-    app.include_router(compliance.router, tags=["compliance"])
+    try:
+        app.include_router(compliance.router, tags=["compliance"])
+        print("✅ Compliance router included")
+    except Exception as e:
+        print(f"❌ Compliance router inclusion failed: {e}")
+else:
+    print("⚠️  Compliance module not available")
 
 if invoice:
-    app.include_router(invoice.router, tags=["invoice"])
+    try:
+        app.include_router(invoice.router, tags=["invoice"])
+        print("✅ Invoice router included")
+    except Exception as e:
+        print(f"❌ Invoice router inclusion failed: {e}")
+else:
+    print("⚠️  Invoice module not available")
 
 if ml_engine:
-    app.include_router(ml_engine.router, tags=["ml-engine"])
+    try:
+        app.include_router(ml_engine.router, tags=["ml-engine"])
+        print("✅ ML Engine router included")
+    except Exception as e:
+        print(f"❌ ML Engine router inclusion failed: {e}")
+else:
+    print("⚠️  ML Engine module not available")
+
+print("Router inclusion completed.")
+
+# Log final route count
+print(f"Total routes registered: {len(app.routes)}")
+for route in app.routes:
+    if hasattr(route, 'path') and hasattr(route, 'methods'):
+        print(f"  {list(route.methods)} {route.path}")
 
 if notifications:
     app.include_router(notifications.router, tags=["notifications"])

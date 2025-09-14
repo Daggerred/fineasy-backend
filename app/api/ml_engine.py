@@ -1,7 +1,3 @@
-"""
-ML Engine API endpoints
-Provides endpoints for model training, deployment, monitoring, and feedback
-"""
 import logging
 from datetime import datetime
 from typing import List, Optional
@@ -24,7 +20,6 @@ security = HTTPBearer()
 
 @router.post("/generate-invoice")
 async def generate_invoice_from_text(request: dict):
-    """Generate invoice from natural language text using Gemini AI"""
     try:
         from ..services.gemini_service import gemini_service
         
@@ -33,8 +28,6 @@ async def generate_invoice_from_text(request: dict):
         
         if not text:
             raise HTTPException(status_code=400, detail="Text is required")
-        
-        # Get business context if available
         business_context = {}
         if business_id:
             from ..database import DatabaseManager
@@ -43,8 +36,6 @@ async def generate_invoice_from_text(request: dict):
                 "customers": await db.get_customers(business_id),
                 "products": await db.get_products(business_id)
             }
-        
-        # Generate invoice using Gemini
         result = await gemini_service.generate_invoice_from_text(text, business_context)
         
         return result
@@ -56,7 +47,6 @@ async def generate_invoice_from_text(request: dict):
 
 @router.post("/parse-cv")
 async def parse_cv_content(request: dict):
-    """Parse CV content and generate service invoice using Gemini AI"""
     try:
         from ..services.gemini_service import gemini_service
         
@@ -65,8 +55,6 @@ async def parse_cv_content(request: dict):
         
         if not cv_text:
             raise HTTPException(status_code=400, detail="CV text is required")
-        
-        # Parse CV using Gemini
         result = await gemini_service.parse_cv_content(cv_text)
         
         return result
@@ -78,7 +66,6 @@ async def parse_cv_content(request: dict):
 
 @router.get("/health")
 async def check_ml_health():
-    """Check ML service health"""
     try:
         from ..services.gemini_service import gemini_service
         
@@ -126,7 +113,6 @@ async def deploy_model(
     model_version: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Deploy a trained model to production"""
     try:
         logger.info(f"Deploying model: {model_name} v{model_version}")
         
@@ -153,13 +139,10 @@ async def get_model_performance(
     model_name: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get model performance metrics"""
     try:
         logger.info(f"Getting performance metrics for model: {model_name}")
         
         metrics = await ml_engine.monitor_model_performance(model_name)
-        
-        # Determine performance trend (simplified)
         trend = "stable"
         if metrics.accuracy > 0.8:
             trend = "good"
@@ -194,7 +177,6 @@ async def record_feedback(
     user_feedback: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Record feedback for model predictions"""
     try:
         logger.info(f"Recording feedback for model: {model_name}, prediction: {prediction_id}")
         
@@ -206,7 +188,7 @@ async def record_feedback(
         )
         
         if success:
-            # Check if retraining was triggered
+     
             retraining_triggered = await ml_engine.retrain_model_if_needed(model_name)
             
             return FeedbackResponse(
@@ -230,7 +212,6 @@ async def get_model_metadata(
     model_version: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get model metadata"""
     try:
         logger.info(f"Getting metadata for model: {model_name}")
         
@@ -258,8 +239,7 @@ async def trigger_retraining(
     """Manually trigger model retraining"""
     try:
         logger.info(f"Manually triggering retraining for model: {model_name}")
-        
-        # Add retraining to background tasks
+
         background_tasks.add_task(ml_engine.retrain_model_if_needed, model_name)
         
         return {
@@ -281,7 +261,6 @@ async def list_models(
     status: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """List all models with optional filtering"""
     try:
         logger.info("Listing models")
         
@@ -317,62 +296,53 @@ async def delete_model(
     model_version: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Delete a model and its files"""
+  
     try:
         logger.info(f"Deleting model: {model_name} v{model_version}")
-        
-        # Get model metadata
+   
         metadata = await ml_engine._get_model_metadata(model_name, model_version)
         if not metadata:
             raise HTTPException(status_code=404, detail="Model not found")
         
-        # Don't allow deletion of deployed models
+    
         if metadata.status == "deployed":
             raise HTTPException(status_code=400, detail="Cannot delete deployed model")
         
-        # Delete model files
+      
         if metadata.model_path:
             model_path = Path(metadata.model_path)
             if model_path.exists():
                 model_path.unlink()
             
-            # Delete metadata file
+            
             metadata_path = model_path.with_suffix('.json')
             if metadata_path.exists():
                 metadata_path.unlink()
         
-        # Delete from database
         supabase = ml_engine._get_supabase()
         if not supabase:
             raise HTTPException(status_code=503, detail="Database not available")
         await supabase.table("ml_models").delete().eq(
             "model_name", model_name
         ).eq("model_version", model_version).execute()
-        
         return {
             "success": True,
             "message": f"Model {model_name} v{model_version} deleted successfully"
         }
-        
     except Exception as e:
         logger.error(f"Failed to delete model: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to delete model: {str(e)}")
-
-
 @router.get("/health")
 async def health_check():
     """Health check endpoint for ML engine"""
     try:
-        # Check if ML engine is responsive
         active_models_count = len(ml_engine.active_models)
-        
         return {
             "status": "healthy",
             "active_models": active_models_count,
             "timestamp": datetime.utcnow(),
             "version": "1.0.0"
         }
-        
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         raise HTTPException(status_code=503, detail="ML Engine unhealthy")

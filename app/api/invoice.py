@@ -1,6 +1,4 @@
-"""
-NLP Invoice Generation API endpoints
-"""
+
 from fastapi import APIRouter, HTTPException, Depends, Body
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel, Field
@@ -18,19 +16,16 @@ security = HTTPBearer()
 
 
 class ParseTextRequest(BaseModel):
-    """Request model for parsing invoice text"""
     text: str = Field(..., description="Natural language text to parse")
     business_id: str = Field(..., description="Business ID for context")
 
 
 class EntityResolutionRequest(BaseModel):
-    """Request model for entity resolution"""
     entities: Dict[str, Any] = Field(..., description="Extracted entities to resolve")
     business_id: str = Field(..., description="Business ID for context")
 
 
 class InvoicePreviewRequest(BaseModel):
-    """Request model for invoice preview"""
     customer: Optional[Dict[str, Any]] = None
     items: List[Dict[str, Any]] = Field(default_factory=list)
     payment_preference: Optional[str] = None
@@ -39,14 +34,14 @@ class InvoicePreviewRequest(BaseModel):
 
 
 class InvoiceConfirmationRequest(BaseModel):
-    """Request model for invoice confirmation"""
+
     preview_id: str = Field(..., description="Preview ID to confirm")
     modifications: Optional[Dict[str, Any]] = None
     business_id: str = Field(..., description="Business ID")
 
 
 class ParseTextResponse(BaseModel):
-    """Response model for text parsing"""
+
     success: bool = True
     extracted_entities: Dict[str, Any] = Field(default_factory=dict)
     confidence_score: float = Field(ge=0.0, le=1.0)
@@ -55,7 +50,7 @@ class ParseTextResponse(BaseModel):
 
 
 class EntityResolutionResponse(BaseModel):
-    """Response model for entity resolution"""
+
     success: bool = True
     resolved_customer: Optional[Dict[str, Any]] = None
     resolved_products: List[Dict[str, Any]] = Field(default_factory=list)
@@ -65,7 +60,7 @@ class EntityResolutionResponse(BaseModel):
 
 
 class InvoicePreviewResponse(BaseModel):
-    """Response model for invoice preview"""
+
     success: bool = True
     preview_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     invoice_data: Dict[str, Any] = Field(default_factory=dict)
@@ -76,7 +71,7 @@ class InvoicePreviewResponse(BaseModel):
     message: Optional[str] = None
 
 
-# Store preview data temporarily (in production, use Redis or database)
+# TO:DO: In production, use a persistent store or cache with expiration
 _preview_cache: Dict[str, Dict[str, Any]] = {}
 
 
@@ -85,7 +80,7 @@ async def generate_invoice_from_text(
     request: InvoiceRequest,
     token: str = Depends(security)
 ):
-    """Generate invoice from natural language text (complete workflow)"""
+
     try:
         logger.info(f"Generating invoice from text for business: {request.business_id}")
         generator = NLPInvoiceGenerator()
@@ -101,20 +96,13 @@ async def parse_invoice_text(
     request: ParseTextRequest,
     token: str = Depends(security)
 ):
-    """Parse natural language text for invoice entities"""
     try:
         logger.info(f"Parsing invoice text for business: {request.business_id}")
         generator = NLPInvoiceGenerator()
-        
-        # Extract entities from text
         entities = generator.entity_extractor.extract_entities(request.text)
-        
-        # Calculate confidence based on entity completeness
         required_entities = ["customer_names", "items"]
         found_entities = sum(1 for entity in required_entities if entities.get(entity))
         confidence_score = found_entities / len(required_entities)
-        
-        # Generate suggestions for improvement
         suggestions = []
         if not entities.get("customer_names"):
             suggestions.append("Consider specifying the customer name more clearly")
@@ -124,7 +112,6 @@ async def parse_invoice_text(
             suggestions.append("Consider adding quantities for better accuracy")
         if not entities.get("prices"):
             suggestions.append("Including prices will improve invoice accuracy")
-        
         return ParseTextResponse(
             success=True,
             extracted_entities=entities,
@@ -143,22 +130,22 @@ async def resolve_entities(
     request: EntityResolutionRequest,
     token: str = Depends(security)
 ):
-    """Resolve extracted entities with existing business data"""
+
     try:
         logger.info(f"Resolving entities for business: {request.business_id}")
         generator = NLPInvoiceGenerator()
         
-        # Resolve entities with existing data
+
         resolved_entities = await generator.resolve_entities(request.entities, request.business_id)
         
-        # Calculate resolution confidence
+
         customer_confidence = 0.0
         if resolved_entities.get("customer"):
             customer = resolved_entities["customer"]
             if not customer.get("is_new", True):
                 customer_confidence = customer.get("match_confidence", 0) / 100
             else:
-                customer_confidence = 0.5  # New customer gets medium confidence
+                customer_confidence = 0.5 
         
         product_confidence = 0.0
         if resolved_entities.get("products"):
@@ -170,8 +157,7 @@ async def resolve_entities(
             product_confidence = sum(product_scores) / len(product_scores) if product_scores else 0.0
         
         resolution_confidence = (customer_confidence + product_confidence) / 2
-        
-        # Generate suggestions
+
         suggestions = []
         if resolved_entities.get("customer", {}).get("is_new"):
             suggestions.append("New customer detected - consider adding contact details")
@@ -199,12 +185,11 @@ async def create_invoice_preview(
     request: InvoicePreviewRequest,
     token: str = Depends(security)
 ):
-    """Create invoice preview for user confirmation"""
+
     try:
         logger.info(f"Creating invoice preview for business: {request.business_id}")
         generator = NLPInvoiceGenerator()
-        
-        # Build invoice items from request data
+
         invoice_items = []
         total_amount = 0.0
         warnings = []
@@ -219,8 +204,7 @@ async def create_invoice_preview(
                     tax_rate=item_data.get("tax_rate", 0.0),
                     description=item_data.get("description")
                 )
-                
-                # Recalculate total if not provided
+
                 if item.total_price == 0.0:
                     item.total_price = item.quantity * item.unit_price
                 
@@ -233,11 +217,9 @@ async def create_invoice_preview(
                 
             except (ValueError, TypeError) as e:
                 warnings.append(f"Invalid item data: {item_data.get('name', 'Unknown')}")
-        
-        # Calculate confidence score
+
         confidence_factors = []
-        
-        # Customer confidence
+
         if request.customer:
             if not request.customer.get("is_new", True):
                 confidence_factors.append(0.9)
@@ -246,8 +228,7 @@ async def create_invoice_preview(
         else:
             confidence_factors.append(0.3)
             warnings.append("No customer specified")
-        
-        # Items confidence
+
         if invoice_items:
             item_confidence = sum(1.0 if item.unit_price > 0 else 0.5 for item in invoice_items) / len(invoice_items)
             confidence_factors.append(item_confidence)
@@ -256,8 +237,7 @@ async def create_invoice_preview(
             warnings.append("No items specified")
         
         confidence_score = sum(confidence_factors) / len(confidence_factors) if confidence_factors else 0.0
-        
-        # Create preview data
+
         preview_id = str(uuid.uuid4())
         invoice_data = {
             "customer": request.customer,
@@ -270,22 +250,18 @@ async def create_invoice_preview(
             "business_id": request.business_id
         }
         
-        # Calculate tax if applicable
         tax_amount = sum(
             item.total_price * (item.tax_rate or 0.0) / 100 
             for item in invoice_items
         )
         invoice_data["tax_amount"] = tax_amount
         invoice_data["total_amount"] = total_amount + tax_amount
-        
-        # Store preview in cache
+
         _preview_cache[preview_id] = {
             "invoice_data": invoice_data,
             "original_text": request.original_text,
             "created_at": "now"  # In production, use actual timestamp
         }
-        
-        # Generate suggestions
         suggestions = []
         if confidence_score < 0.7:
             suggestions.append("Consider reviewing and completing missing information")
@@ -293,8 +269,7 @@ async def create_invoice_preview(
             suggestions.append("Consider specifying payment method")
         if total_amount == 0.0:
             suggestions.append("Please add item prices for accurate invoice")
-        
-        # Define editable fields
+
         editable_fields = [
             "customer.name", "customer.email", "customer.phone",
             "items[].name", "items[].quantity", "items[].unit_price",
@@ -325,35 +300,30 @@ async def confirm_invoice(
     """Confirm and finalize invoice from preview"""
     try:
         logger.info(f"Confirming invoice preview: {request.preview_id}")
-        
-        # Retrieve preview data
+
         if request.preview_id not in _preview_cache:
             raise HTTPException(status_code=404, detail="Preview not found or expired")
         
         preview_data = _preview_cache[request.preview_id]
         invoice_data = preview_data["invoice_data"].copy()
-        
-        # Apply modifications if provided
+
         if request.modifications:
             # Apply customer modifications
             if "customer" in request.modifications:
                 invoice_data["customer"].update(request.modifications["customer"])
-            
-            # Apply item modifications
+
             if "items" in request.modifications:
                 for i, item_mod in enumerate(request.modifications["items"]):
                     if i < len(invoice_data["items"]):
                         invoice_data["items"][i].update(item_mod)
-                        # Recalculate total price
+                        
                         item = invoice_data["items"][i]
                         item["total_price"] = item["quantity"] * item["unit_price"]
-            
-            # Apply other modifications
+
             for key, value in request.modifications.items():
                 if key not in ["customer", "items"]:
                     invoice_data[key] = value
-            
-            # Recalculate totals
+
             subtotal = sum(item["total_price"] for item in invoice_data["items"])
             tax_amount = sum(
                 item["total_price"] * (item.get("tax_rate", 0.0) / 100)
@@ -362,17 +332,15 @@ async def confirm_invoice(
             invoice_data["subtotal"] = subtotal
             invoice_data["tax_amount"] = tax_amount
             invoice_data["total_amount"] = subtotal + tax_amount
-        
-        # Generate final invoice ID
+
         invoice_id = str(uuid.uuid4())
         invoice_data["invoice_id"] = invoice_id
         invoice_data["generated_at"] = "now"  # In production, use actual timestamp
         invoice_data["status"] = "confirmed"
         
-        # Clean up preview cache
         del _preview_cache[request.preview_id]
         
-        # In production, save to database here
+        # aage to save the data here 
         # await generator.db.save_invoice(invoice_data)
         
         return InvoiceGenerationResponse(
@@ -396,7 +364,7 @@ async def get_invoice_preview(
     preview_id: str,
     token: str = Depends(security)
 ):
-    """Retrieve invoice preview by ID"""
+
     try:
         if preview_id not in _preview_cache:
             raise HTTPException(status_code=404, detail="Preview not found or expired")
@@ -422,7 +390,6 @@ async def cancel_invoice_preview(
     preview_id: str,
     token: str = Depends(security)
 ):
-    """Cancel and delete invoice preview"""
     try:
         if preview_id not in _preview_cache:
             raise HTTPException(status_code=404, detail="Preview not found or expired")

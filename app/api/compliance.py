@@ -19,18 +19,17 @@ security = HTTPBearer()
 
 
 class ComplianceCheckRequest(BaseModel):
-    """Request model for compliance checking"""
     invoice_id: str
     business_id: str
 
 
 class GSTValidationRequest(BaseModel):
-    """Request model for GST validation"""
+    
     gstin: str
 
 
 class ComplianceIssueResolutionRequest(BaseModel):
-    """Request model for resolving compliance issues"""
+    
     issue_id: str
     resolution_action: str
     resolution_notes: Optional[str] = None
@@ -38,7 +37,7 @@ class ComplianceIssueResolutionRequest(BaseModel):
 
 
 class ComplianceReminderRequest(BaseModel):
-    """Request model for setting up compliance reminders"""
+    
     business_id: str
     reminder_type: str = Field(..., description="Type of reminder (gst_filing, tax_payment, etc.)")
     due_date: datetime
@@ -49,7 +48,7 @@ class ComplianceReminderRequest(BaseModel):
 
 
 class ComplianceTrackingResponse(BaseModel):
-    """Response model for compliance tracking"""
+  
     business_id: str
     total_issues: int
     resolved_issues: int
@@ -62,7 +61,7 @@ class ComplianceTrackingResponse(BaseModel):
 
 
 class ComplianceReminderResponse(BaseModel):
-    """Response model for compliance reminders"""
+    
     reminder_id: str
     business_id: str
     reminder_type: str
@@ -79,15 +78,7 @@ async def check_compliance(
     request: ComplianceCheckRequest,
     token: str = Depends(security)
 ):
-    """
-    Check comprehensive compliance for an invoice
-    
-    This endpoint performs:
-    - Field completeness validation
-    - GST number validation
-    - Tax calculation verification
-    - Place of supply validation
-    """
+   
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -105,11 +96,7 @@ async def validate_gst(
     request: GSTValidationRequest,
     token: str = Depends(security)
 ):
-    """
-    Validate GST number format and verify with government API
     
-    Performs both format validation and API verification if GST API key is configured
-    """
     try:
         checker = ComplianceChecker()
         result = await checker.validate_gst_number(request.gstin)
@@ -124,11 +111,7 @@ async def verify_tax_calculations(
     invoice_id: str = Query(..., description="Invoice ID to verify tax calculations"),
     token: str = Depends(security)
 ):
-    """
-    Verify tax calculations for an invoice
-    
-    Calculates expected tax based on items and rates, compares with actual tax amount
-    """
+   
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -146,11 +129,7 @@ async def get_compliance_issues(
     invoice_id: str,
     token: str = Depends(security)
 ):
-    """
-    Get list of compliance issues for an invoice
-    
-    Returns detailed list of all compliance issues found
-    """
+   
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -169,11 +148,7 @@ async def resolve_compliance_issue(
     request: ComplianceIssueResolutionRequest,
     token: str = Depends(security)
 ):
-    """
-    Mark a compliance issue as resolved
-    
-    Tracks resolution actions and updates issue status
-    """
+   
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -196,11 +171,7 @@ async def get_compliance_tracking(
     business_id: str,
     token: str = Depends(security)
 ):
-    """
-    Get compliance tracking summary for a business
-    
-    Returns overall compliance metrics and issue statistics
-    """
+   
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -219,11 +190,7 @@ async def create_compliance_reminder(
     background_tasks: BackgroundTasks,
     token: str = Depends(security)
 ):
-    """
-    Create automated compliance reminder
-    
-    Sets up reminders for GST filing, tax payments, and other compliance deadlines
-    """
+   
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -239,7 +206,7 @@ async def create_compliance_reminder(
             recurring_interval_days=request.recurring_interval_days
         )
         
-        # Schedule background task to send reminder notifications
+       
         background_tasks.add_task(
             checker.schedule_reminder_notifications,
             reminder["reminder_id"]
@@ -258,11 +225,7 @@ async def get_compliance_reminders(
     reminder_type: Optional[str] = Query(None, description="Filter by reminder type"),
     token: str = Depends(security)
 ):
-    """
-    Get compliance reminders for a business
     
-    Returns list of reminders with optional filtering
-    """
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -285,11 +248,7 @@ async def complete_compliance_reminder(
     completion_notes: Optional[str] = None,
     token: str = Depends(security)
 ):
-    """
-    Mark a compliance reminder as completed
     
-    Updates reminder status and optionally schedules next occurrence for recurring reminders
-    """
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -311,11 +270,6 @@ async def get_plain_language_explanation(
     context: Optional[Dict[str, Any]] = None,
     token: str = Depends(security)
 ):
-    """
-    Get plain language explanation for compliance issues
-    
-    Provides user-friendly explanations of compliance requirements and issues
-    """
     try:
         checker = ComplianceChecker()
         explanation = await checker.generate_plain_language_explanation(
@@ -340,11 +294,7 @@ async def get_upcoming_deadlines(
     days_ahead: int = Query(30, description="Number of days to look ahead for deadlines"),
     token: str = Depends(security)
 ):
-    """
-    Get upcoming compliance deadlines for a business
     
-    Returns deadlines for GST filing, tax payments, and other compliance requirements
-    """
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -373,11 +323,6 @@ async def bulk_compliance_check(
     background_tasks: BackgroundTasks,
     token: str = Depends(security)
 ):
-    """
-    Perform bulk compliance checking for multiple invoices
-    
-    Processes multiple invoices in background and returns job ID for tracking
-    """
     if not settings.COMPLIANCE_CHECKING_ENABLED:
         raise HTTPException(status_code=503, detail="Compliance checking is currently disabled")
     
@@ -412,11 +357,7 @@ async def get_bulk_check_status(
     job_id: str,
     token: str = Depends(security)
 ):
-    """
-    Get status of bulk compliance check job
-    
-    Returns progress and results of bulk compliance checking
-    """
+  
     try:
         checker = ComplianceChecker()
         status = await checker.get_bulk_check_status(job_id)
@@ -428,11 +369,7 @@ async def get_bulk_check_status(
 
 @router.get("/health")
 async def compliance_health_check():
-    """
-    Health check endpoint for compliance service
-    
-    Returns service status and configuration
-    """
+   
     return {
         "service": "compliance",
         "status": "healthy" if settings.COMPLIANCE_CHECKING_ENABLED else "disabled",

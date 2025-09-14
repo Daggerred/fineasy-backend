@@ -18,16 +18,15 @@ security = HTTPBearer()
 async def get_models_performance(
     token: str = Depends(security)
 ):
-    """Get performance metrics for all AI models"""
+
     try:
-        # Verify authentication (bypass for development)
+
         user_id = await verify_token(token.credentials if hasattr(token, 'credentials') else str(token))
         if not user_id:
-            # For development, allow access with a warning
+            # TO:DO: Bypass auth for development only baad mei nikal dena
             logger.warning("Authentication bypassed for development - models performance")
             user_id = "dev_user"
         
-        # Return sample model performance data
         models_performance = [
             {
                 "model_name": "fraud_detection",
@@ -78,7 +77,6 @@ async def get_models_status(
 ):
     """Get status of all AI models"""
     try:
-        # Verify authentication (bypass for development)
         user_id = await verify_token(token.credentials if hasattr(token, 'credentials') else str(token))
         if not user_id:
             logger.warning("Authentication bypassed for development - models status")

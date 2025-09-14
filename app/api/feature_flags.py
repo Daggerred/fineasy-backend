@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/feature-flags", tags=["feature-flags"])
 
 
 class FeatureFlagResponse(BaseModel):
-    """Feature flag response model."""
+   
     name: str
     status: str
     description: str
@@ -28,7 +28,7 @@ class FeatureFlagResponse(BaseModel):
 
 
 class FeatureFlagUpdateRequest(BaseModel):
-    """Feature flag update request model."""
+    
     status: Optional[str] = None
     rollout_percentage: Optional[float] = Field(None, ge=0, le=100)
     ab_test_enabled: Optional[bool] = None
@@ -38,14 +38,14 @@ class FeatureFlagUpdateRequest(BaseModel):
 
 
 class FeatureCheckRequest(BaseModel):
-    """Feature check request model."""
+   
     feature_name: str
     user_id: str
     business_id: Optional[str] = None
 
 
 class FeatureCheckResponse(BaseModel):
-    """Feature check response model."""
+    
     feature_name: str
     enabled: bool
     variant: Optional[str] = None
@@ -53,21 +53,21 @@ class FeatureCheckResponse(BaseModel):
 
 
 class InteractionTrackingRequest(BaseModel):
-    """Interaction tracking request model."""
+ 
     feature_name: str
     user_id: str
     interaction_type: str = "view"
 
 
 class ConversionTrackingRequest(BaseModel):
-    """Conversion tracking request model."""
+   
     feature_name: str
     user_id: str
     conversion_value: float = 1.0
 
 
 class AnalyticsResponse(BaseModel):
-    """Analytics response model."""
+   
     feature_name: str
     period_days: int
     total_interactions: int
@@ -81,10 +81,9 @@ class AnalyticsResponse(BaseModel):
 async def list_feature_flags(
     current_user: dict = Depends(require_admin)
 ):
-    """List all feature flags (admin only)."""
+   
     try:
-        # This would typically fetch from database
-        # For now, return the default flags
+       
         flags = [
             {
                 "name": "fraud_detection",
@@ -154,12 +153,12 @@ async def update_feature_flag(
     request: FeatureFlagUpdateRequest,
     current_user: dict = Depends(require_admin)
 ):
-    """Update feature flag configuration (admin only)."""
+    """Sooo jaaa Bhaaaaiiiiiiiiiiiiiiiiiiiii """
     try:
         updates = {}
         
         if request.status is not None:
-            # Validate status
+           
             try:
                 FeatureFlagStatus(request.status)
                 updates["status"] = request.status
@@ -203,7 +202,7 @@ async def check_feature_enabled(
     request: FeatureCheckRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Check if a feature is enabled for a specific user."""
+   
     try:
         enabled = await get_feature_flag_manager().is_feature_enabled(
             request.feature_name, 
@@ -234,7 +233,7 @@ async def track_interaction(
     request: InteractionTrackingRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Track user interaction with a feature."""
+   
     try:
         await get_feature_flag_manager().track_interaction(
             request.feature_name,
@@ -253,7 +252,7 @@ async def track_conversion(
     request: ConversionTrackingRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Track conversion event for A/B testing."""
+  
     try:
         await feature_flag_manager.track_conversion(
             request.feature_name,
@@ -273,7 +272,7 @@ async def get_feature_analytics(
     days: int = Query(30, ge=1, le=365),
     current_user: dict = Depends(require_admin)
 ):
-    """Get feature usage analytics (admin only)."""
+
     try:
         analytics = await feature_flag_manager.get_feature_analytics(feature_name, days)
         
@@ -294,7 +293,7 @@ async def emergency_disable_feature(
     reason: str,
     current_user: dict = Depends(require_admin)
 ):
-    """Emergency disable a feature flag (admin only)."""
+   
     try:
         success = await feature_flag_manager.emergency_disable_feature(feature_name, reason)
         
@@ -315,7 +314,7 @@ async def get_feature_performance(
     days: int = Query(7, ge=1, le=90),
     current_user: dict = Depends(require_admin)
 ):
-    """Get feature performance metrics (admin only)."""
+   
     try:
         # This would fetch performance data from the database
         # For now, return mock data

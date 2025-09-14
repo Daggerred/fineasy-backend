@@ -1,10 +1,3 @@
-"""
-Cache Management API Endpoints
-
-Provides endpoints for monitoring and managing Redis cache performance,
-ML model caching, and resource optimization.
-"""
-
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Dict, List, Optional, Any
 import logging
@@ -29,17 +22,13 @@ router = APIRouter(prefix="/api/v1/cache", tags=["cache"])
 
 @router.get("/stats", response_model=CacheStatsResponse)
 async def get_cache_statistics(current_user: dict = Depends(get_current_user)):
-    """
-    Get comprehensive cache statistics and performance metrics.
-    """
     try:
-        # Get ML model cache statistics
+       
         ml_stats = await ml_model_cache.get_cache_statistics()
         
-        # Get performance report
+       
         performance_report = await cache_performance_monitor.get_performance_report()
-        
-        # Get Redis info
+
         redis_client = get_redis_client()
         redis_info = {}
         try:
@@ -57,15 +46,11 @@ async def get_cache_statistics(current_user: dict = Depends(get_current_user)):
         
     except Exception as e:
         logger.error(f"Failed to get cache statistics: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get cache statistics: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Some error related to something: {str(e)}")
 
 
 @router.get("/health", response_model=ResourceHealthResponse)
 async def get_resource_health(current_user: dict = Depends(get_current_user)):
-    """
-    Get comprehensive resource health report including system metrics,
-    cache performance, and optimization recommendations.
-    """
     try:
         health_report = await resource_manager.get_resource_health_report()
         
@@ -89,13 +74,6 @@ async def optimize_resources(
     force: bool = False,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Trigger resource optimization including cache cleanup,
-    memory management, and performance tuning.
-    
-    Args:
-        force: Force optimization even if not needed
-    """
     try:
         # Run optimization
         optimization_results = await resource_manager.optimize_resources()
@@ -123,13 +101,6 @@ async def invalidate_model_cache(
     model_version: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Invalidate cached ML model and related prediction results.
-    
-    Args:
-        model_name: Name of the model to invalidate
-        model_version: Specific version to invalidate (optional)
-    """
     try:
         success = await ml_model_cache.invalidate_model_cache(model_name, model_version)
         
@@ -152,16 +123,11 @@ async def clear_prediction_cache(
     model_name: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Clear cached prediction results for a specific model.
-    
-    Args:
-        model_name: Name of the model whose predictions to clear
-    """
+   
     try:
         redis_client = get_redis_client()
         
-        # Find and delete prediction cache keys
+        
         pattern = f"prediction:{model_name}:*"
         keys = await redis_client.keys(pattern)
         
@@ -186,13 +152,7 @@ async def trigger_cache_invalidation(
     context: Optional[Dict[str, Any]] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Trigger cache invalidation based on an event.
     
-    Args:
-        event_name: Name of the event that triggers invalidation
-        context: Optional context data for pattern substitution
-    """
     try:
         invalidated_patterns = await cache_invalidation_manager.trigger_invalidation(
             event_name, context or {}
@@ -215,12 +175,7 @@ async def get_model_recommendations(
     model_name: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get performance recommendations for a specific ML model.
-    
-    Args:
-        model_name: Name of the model to analyze
-    """
+   
     try:
         recommendations = await resource_manager.get_model_performance_recommendations(model_name)
         
@@ -240,9 +195,7 @@ async def start_resource_monitoring(
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Start background resource monitoring.
-    """
+    
     try:
         background_tasks.add_task(resource_manager.start_monitoring)
         
@@ -258,9 +211,7 @@ async def start_resource_monitoring(
 
 @router.get("/monitoring/stop")
 async def stop_resource_monitoring(current_user: dict = Depends(get_current_user)):
-    """
-    Stop background resource monitoring.
-    """
+   
     try:
         await resource_manager.stop_monitoring()
         
@@ -276,12 +227,10 @@ async def stop_resource_monitoring(current_user: dict = Depends(get_current_user
 
 @router.get("/config")
 async def get_cache_configuration(current_user: dict = Depends(get_current_user)):
-    """
-    Get current cache configuration settings.
-    """
+    
     try:
         config = {
-            "redis_url": "***hidden***",  # Don't expose sensitive info
+            "redis_url": "***hidden***",  
             "model_memory_limit_mb": ml_model_cache.model_memory_limit / (1024**2),
             "prediction_cache_ttl": ml_model_cache.prediction_cache_ttl,
             "model_cache_ttl": ml_model_cache.model_cache_ttl,
@@ -302,16 +251,11 @@ async def update_cache_configuration(
     config_updates: Dict[str, Any],
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Update cache configuration settings.
     
-    Args:
-        config_updates: Dictionary of configuration updates
-    """
     try:
         updated_settings = []
         
-        # Update ML cache settings
+       
         if "model_memory_limit_mb" in config_updates:
             ml_model_cache.model_memory_limit = config_updates["model_memory_limit_mb"] * 1024**2
             updated_settings.append("model_memory_limit_mb")
@@ -323,8 +267,6 @@ async def update_cache_configuration(
         if "model_cache_ttl" in config_updates:
             ml_model_cache.model_cache_ttl = config_updates["model_cache_ttl"]
             updated_settings.append("model_cache_ttl")
-        
-        # Update resource manager settings
         if "monitoring_interval" in config_updates:
             resource_manager.monitoring_interval = config_updates["monitoring_interval"]
             updated_settings.append("monitoring_interval")

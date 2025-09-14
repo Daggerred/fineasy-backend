@@ -1,6 +1,4 @@
-"""
-Base Pydantic models for AI Backend
-"""
+
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -9,7 +7,7 @@ import uuid
 
 
 class FraudType(str, Enum):
-    """Types of fraud detection"""
+
     DUPLICATE_INVOICE = "duplicate_invoice"
     PAYMENT_MISMATCH = "payment_mismatch"
     SUSPICIOUS_PATTERN = "suspicious_pattern"
@@ -17,7 +15,7 @@ class FraudType(str, Enum):
 
 
 class InsightType(str, Enum):
-    """Types of business insights"""
+
     CASH_FLOW_PREDICTION = "cash_flow_prediction"
     CUSTOMER_ANALYSIS = "customer_analysis"
     EXPENSE_TREND = "expense_trend"
@@ -26,7 +24,7 @@ class InsightType(str, Enum):
 
 
 class ComplianceType(str, Enum):
-    """Types of compliance issues"""
+
     GST_VALIDATION = "gst_validation"
     TAX_CALCULATION = "tax_calculation"
     MISSING_FIELDS = "missing_fields"
@@ -34,7 +32,7 @@ class ComplianceType(str, Enum):
 
 
 class ComplianceSeverity(str, Enum):
-    """Severity levels for compliance issues"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -42,28 +40,26 @@ class ComplianceSeverity(str, Enum):
 
 
 class ComplianceStatus(str, Enum):
-    """Overall compliance status"""
+
     COMPLIANT = "compliant"
     ISSUES_FOUND = "issues_found"
     CRITICAL_ISSUES = "critical_issues"
 
 
 class BaseResponse(BaseModel):
-    """Base response model"""
+
     success: bool = True
     message: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class ErrorResponse(BaseResponse):
-    """Error response model"""
     success: bool = False
     error_code: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
 
 
 class FraudAlert(BaseModel):
-    """Fraud alert model"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: FraudType
     message: str
@@ -75,7 +71,6 @@ class FraudAlert(BaseModel):
 
 
 class BusinessInsight(BaseModel):
-    """Business insight model"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: InsightType
     title: str
@@ -89,7 +84,6 @@ class BusinessInsight(BaseModel):
 
 
 class ComplianceIssue(BaseModel):
-    """Compliance issue model"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: ComplianceType
     description: str
@@ -112,7 +106,7 @@ class InvoiceItem(BaseModel):
 
 
 class InvoiceRequest(BaseModel):
-    """Invoice generation request"""
+    """Atta uthana hain"""
     raw_input: str
     business_id: str
     customer_name: Optional[str] = None
@@ -122,7 +116,6 @@ class InvoiceRequest(BaseModel):
 
 
 class AuthToken(BaseModel):
-    """Authentication token model"""
     token: str
     user_id: str
     business_id: Optional[str] = None

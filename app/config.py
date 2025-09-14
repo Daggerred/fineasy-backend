@@ -37,6 +37,17 @@ class Settings(BaseSettings):
     AI_TIMEOUT: int = 30
     MAX_TOKENS: int = 2000
     
+    # WhatsApp Configuration
+    WHATSAPP_PROVIDER: str = "webhook"  # Options: twilio, whatsapp_business, webhook
+    WHATSAPP_API_TOKEN: Optional[str] = None
+    WHATSAPP_PHONE_NUMBER_ID: Optional[str] = None
+    WHATSAPP_WEBHOOK_URL: Optional[str] = None
+    
+    # Twilio Configuration (if using Twilio)
+    TWILIO_ACCOUNT_SID: Optional[str] = None
+    TWILIO_AUTH_TOKEN: Optional[str] = None
+    TWILIO_WHATSAPP_NUMBER: Optional[str] = None
+    
     # Security Configuration
     SECRET_KEY: str = "your-super-secret-key-here-min-32-chars"
     JWT_SECRET: str = "your-jwt-secret-key-here"

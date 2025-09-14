@@ -1,6 +1,4 @@
-"""
-Health check and monitoring endpoints
-"""
+
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List
 import time
@@ -17,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class HealthChecker:
-    """Comprehensive health checking service"""
+   
     
     def __init__(self):
         self.last_check_time = None
@@ -25,7 +23,7 @@ class HealthChecker:
         self.cache_duration = 30  # seconds
     
     async def get_comprehensive_health(self) -> Dict[str, Any]:
-        """Get comprehensive health status with caching"""
+       
         current_time = time.time()
         
         # Use cached result if recent
@@ -43,7 +41,7 @@ class HealthChecker:
         return health_status
     
     async def _perform_health_checks(self) -> Dict[str, Any]:
-        """Perform all health checks"""
+       
         health_status = {
             "status": "healthy",
             "timestamp": time.time(),
@@ -54,7 +52,7 @@ class HealthChecker:
             "features": {}
         }
         
-        # Run all checks concurrently
+        
         check_tasks = [
             self._check_database(),
             self._check_redis(),
@@ -67,7 +65,7 @@ class HealthChecker:
         try:
             results = await asyncio.gather(*check_tasks, return_exceptions=True)
             
-            # Process results
+           
             health_status["checks"]["database"] = results[0] if not isinstance(results[0], Exception) else {"status": "error", "error": str(results[0])}
             health_status["checks"]["redis"] = results[1] if not isinstance(results[1], Exception) else {"status": "error", "error": str(results[1])}
             health_status["checks"]["ml_models"] = results[2] if not isinstance(results[2], Exception) else {"status": "error", "error": str(results[2])}
@@ -80,16 +78,14 @@ class HealthChecker:
             health_status["status"] = "error"
             health_status["error"] = str(e)
         
-        # Determine overall status
+        # Cough syrup lene jaana hain
         health_status["status"] = self._determine_overall_status(health_status["checks"])
         
-        # Feature availability
         health_status["features"] = self._check_feature_availability(health_status["checks"])
         
         return health_status
     
     async def _check_database(self) -> Dict[str, Any]:
-        """Check database connectivity and performance"""
         try:
             start_time = time.time()
             await test_connection()
@@ -108,7 +104,6 @@ class HealthChecker:
             }
     
     async def _check_redis(self) -> Dict[str, Any]:
-        """Check Redis connectivity and performance"""
         try:
             from ..utils.cache import cache
             if not cache.redis_client:
@@ -121,7 +116,6 @@ class HealthChecker:
             await cache.redis_client.ping()
             response_time = (time.time() - start_time) * 1000
             
-            # Get Redis info
             info = await cache.redis_client.info()
             
             return {
@@ -161,7 +155,6 @@ class HealthChecker:
             }
     
     async def _check_external_services(self) -> Dict[str, Any]:
-        """Check external service connectivity"""
         external_checks = {}
         
         # GST API check
@@ -192,13 +185,10 @@ class HealthChecker:
         try:
             import psutil
             
-            # CPU usage
             cpu_percent = psutil.cpu_percent(interval=1)
             
-            # Memory usage
             memory = psutil.virtual_memory()
             
-            # Disk usage
             disk = psutil.disk_usage('/')
             
             return {
@@ -227,10 +217,10 @@ class HealthChecker:
             from ..utils.cache import cache
             
             metrics = {
-                "cache_hit_rate": 0.85,  # This would be calculated from actual metrics
-                "avg_response_time_ms": 150,  # This would be tracked
-                "requests_per_minute": 45,  # This would be tracked
-                "error_rate": 0.02,  # This would be calculated
+                "cache_hit_rate": 0.85,  
+                "avg_response_time_ms": 150,  
+                "requests_per_minute": 45, 
+                "error_rate": 0.02, 
                 "model_accuracy": {
                     "fraud_detection": 0.92,
                     "predictive_analytics": 0.78,
@@ -295,7 +285,7 @@ class HealthChecker:
         }
 
 
-# Global health checker instance
+
 health_checker = HealthChecker()
 
 
@@ -319,7 +309,7 @@ async def detailed_health_check():
 async def liveness_probe():
     """Kubernetes liveness probe endpoint"""
     try:
-        # Basic application health
+ 
         return {"status": "alive", "timestamp": time.time()}
     except Exception as e:
         logger.error(f"Liveness probe failed: {e}")
@@ -328,7 +318,6 @@ async def liveness_probe():
 
 @router.get("/health/ready")
 async def readiness_probe():
-    """Kubernetes readiness probe endpoint"""
     try:
         # Check critical dependencies
         await test_connection()
@@ -347,7 +336,7 @@ async def readiness_probe():
 async def startup_probe():
     """Kubernetes startup probe endpoint"""
     try:
-        # Check if application has fully started
+
         health = await health_checker.get_comprehensive_health()
         
         if health["status"] in ["healthy", "degraded"]:
@@ -372,15 +361,12 @@ async def prometheus_metrics():
     try:
         health = await health_checker.get_comprehensive_health()
         metrics = health.get("metrics", {})
-        
-        # Format metrics for Prometheus
+
         prometheus_metrics = []
-        
-        # Health status metrics
+
         status_value = 1 if health["status"] == "healthy" else 0
         prometheus_metrics.append(f"ai_backend_health_status {status_value}")
-        
-        # Performance metrics
+
         if "cache_hit_rate" in metrics:
             prometheus_metrics.append(f"ai_backend_cache_hit_rate {metrics['cache_hit_rate']}")
         
@@ -392,13 +378,11 @@ async def prometheus_metrics():
         
         if "error_rate" in metrics:
             prometheus_metrics.append(f"ai_backend_error_rate {metrics['error_rate']}")
-        
-        # Model accuracy metrics
+
         if "model_accuracy" in metrics:
             for model, accuracy in metrics["model_accuracy"].items():
                 prometheus_metrics.append(f"ai_backend_model_accuracy{{model=\"{model}\"}} {accuracy}")
-        
-        # Component health metrics
+
         for component, check in health.get("checks", {}).items():
             if isinstance(check, dict):
                 status_value = 1 if check.get("status") == "healthy" else 0

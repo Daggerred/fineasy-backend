@@ -1,6 +1,3 @@
-"""
-NLP processing endpoints for invoice generation and document processing
-"""
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -24,7 +21,6 @@ class NLPInvoiceResponse(BaseModel):
 
 @router.post("/process-invoice", response_model=NLPInvoiceResponse)
 async def process_invoice_nlp(request: NLPInvoiceRequest):
-    """Process natural language input to generate invoice data"""
     try:
         logger.info(f"Processing NLP invoice request for business: {request.business_id}")
         
@@ -37,7 +33,7 @@ async def process_invoice_nlp(request: NLPInvoiceRequest):
                 message="Could not extract invoice information from the provided text"
             )
         
-        # Add business_id to invoice data
+
         invoice_data["business_id"] = request.business_id
         
         return NLPInvoiceResponse(
@@ -55,7 +51,6 @@ async def process_invoice_nlp(request: NLPInvoiceRequest):
 
 @router.post("/create-invoice")
 async def create_invoice_from_nlp(request: NLPInvoiceRequest):
-    """Create and save invoice from NLP processing"""
     try:
         from ..database import get_db_manager
         
@@ -69,17 +64,11 @@ async def create_invoice_from_nlp(request: NLPInvoiceRequest):
                 "success": False,
                 "message": "Could not extract invoice information from the provided text"
             }
-        
-        # Add business_id and additional fields for database
         invoice_data["business_id"] = request.business_id
         invoice_data["status"] = "draft"
         invoice_data["created_at"] = datetime.now().isoformat()
         invoice_data["updated_at"] = datetime.now().isoformat()
-        
-        # Get database manager
         db = get_db_manager()
-        
-        # Save invoice to database
         saved_invoice = await db.insert("invoices", invoice_data)
         
         if saved_invoice:
@@ -104,11 +93,8 @@ async def create_invoice_from_nlp(request: NLPInvoiceRequest):
         }
 
 def parse_invoice_text(text: str) -> Optional[Dict[str, Any]]:
-    """Parse natural language text to extract invoice information"""
     try:
         text = text.lower().strip()
-        
-        # Initialize invoice data
         invoice_data = {
             "customer_name": "",
             "customer_email": "",
@@ -124,8 +110,8 @@ def parse_invoice_text(text: str) -> Optional[Dict[str, Any]]:
             "due_date": (datetime.now() + timedelta(days=30)).isoformat(),
             "invoice_number": f"INV-{datetime.now().strftime('%Y%m%d%H%M%S')}"
         }
-        
-        # Extract customer name - enhanced patterns
+
+        # TO:DO: Improve extraction logic with NLP libraries or services and regex bhi improve karna hai
         customer_patterns = [
             r"(?:for|to)\s+([a-zA-Z\s]+?)(?:\s+for|\s+\d|\s*$)",
             r"invoice\s+for\s+([a-zA-Z\s]+?)(?:\s+for|\s+\d|\s*$)",
@@ -140,26 +126,19 @@ def parse_invoice_text(text: str) -> Optional[Dict[str, Any]]:
             if match:
                 invoice_data["customer_name"] = match.group(1).strip().title()
                 break
-        
-        # Extract email if present
         email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
         if email_match:
             invoice_data["customer_email"] = email_match.group()
-        
-        # Extract phone if present
         phone_match = re.search(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', text)
         if phone_match:
             invoice_data["customer_phone"] = phone_match.group()
-        
-        # Extract items with quantities and prices
         items = extract_items_from_text(text)
         invoice_data["items"] = items
-        
-        # Calculate totals
+
         subtotal = sum(item["total_price"] for item in items)
         invoice_data["subtotal"] = subtotal
         
-        # Extract discount if mentioned - enhanced patterns
+        # Discount ko aur better karna hain regex se phir gemini mei pass karna hain 
         discount_patterns = [
             r'(\d+(?:\.\d+)?)\s*%\s*discount',
             r'with\s+(\d+(?:\.\d+)?)\s*%\s*discount',
@@ -175,8 +154,7 @@ def parse_invoice_text(text: str) -> Optional[Dict[str, Any]]:
                     discount_percent = discount_percent / 100
                 invoice_data["discount_amount"] = subtotal * discount_percent
                 break
-        
-        # Extract tax if mentioned, otherwise default to GST 18%
+
         tax_match = re.search(r'(\d+(?:\.\d+)?)\s*%?\s*(?:tax|gst)', text, re.IGNORECASE)
         if tax_match:
             tax_percent = float(tax_match.group(1))
@@ -184,17 +162,15 @@ def parse_invoice_text(text: str) -> Optional[Dict[str, Any]]:
                 tax_percent = tax_percent / 100
             invoice_data["tax_rate"] = tax_percent
         else:
-            # Default to 18% GST for Indian businesses
             invoice_data["tax_rate"] = 0.18
-        
-        # Calculate tax amount
+
         taxable_amount = subtotal - invoice_data["discount_amount"]
         invoice_data["tax_amount"] = taxable_amount * invoice_data["tax_rate"]
-        
-        # Calculate total
+
         invoice_data["total_amount"] = subtotal - invoice_data["discount_amount"] + invoice_data["tax_amount"]
         
-        # Add GST breakdown for Indian businesses
+        # Add GST to be improved
+        #TO:DO: Yeh bhi gemini mei bhejna hain aur wahan se better karna hain
         invoice_data["gst_breakdown"] = {
             "cgst": invoice_data["tax_amount"] / 2,
             "sgst": invoice_data["tax_amount"] / 2,
@@ -211,25 +187,20 @@ def extract_items_from_text(text: str) -> List[Dict[str, Any]]:
     """Extract items with quantities and prices from text"""
     items = []
     
-    # Enhanced patterns for better extraction including Indian currency
     patterns = [
-        # Pattern: "8 drums for 5000 rupees each"
         r'(\d+)\s+([a-zA-Z\s]+?)\s+(?:for|at|@)\s+(\d+(?:\.\d+)?)\s+(?:rupees?|rs\.?|₹|dollars?|\$)\s+each',
-        # Pattern: "5 laptops at $1000 each"
+        # Pattern: "5 laptops at rupees 1000 each"
         r'(\d+)\s*(?:x\s*)?([a-zA-Z\s]+?)\s*(?:at|@|for)\s*(?:\$|₹|rs\.?\s*)?(\d+(?:\.\d+)?)\s*(?:each|per|total)?',
-        # Pattern: "drums 8 for 5000"
         r'([a-zA-Z\s]+?)\s+(\d+)\s+(?:for|at|@)\s+(?:\$|₹|rs\.?\s*)?(\d+(?:\.\d+)?)',
-        # Pattern: "8 drums 5000 rupees"
         r'(\d+)\s+([a-zA-Z\s]+?)\s+(\d+(?:\.\d+)?)\s+(?:rupees?|rs\.?|₹|dollars?|\$)',
     ]
     
     for pattern in patterns:
         matches = re.findall(pattern, text)
-        if matches:  # If we found matches with this pattern, use them and break
+        if matches:  
             for match in matches:
                 try:
                     if len(match) == 3:
-                        # Try to determine which is quantity, description, and price
                         if match[0].isdigit():
                             quantity = int(match[0])
                             description = match[1].strip().title()
@@ -240,8 +211,6 @@ def extract_items_from_text(text: str) -> List[Dict[str, Any]]:
                             unit_price = float(match[2])
                         else:
                             continue
-                        
-                        # Check if price is total or per unit
                         if 'total' in text.lower():
                             total_price = unit_price
                             unit_price = total_price / quantity if quantity > 0 else 0
@@ -256,11 +225,9 @@ def extract_items_from_text(text: str) -> List[Dict[str, Any]]:
                     })
                 except (ValueError, IndexError):
                     continue
-            break  # Break after finding matches with this pattern
-    
-    # If no items found with patterns, try to extract simple item mentions
+            break 
+
     if not items:
-        # Look for product names with prices
         simple_patterns = [
             r'([a-zA-Z\s]+?)\s*\$(\d+(?:\.\d+)?)',
             r'\$(\d+(?:\.\d+)?)\s*([a-zA-Z\s]+)',
@@ -297,9 +264,7 @@ async def process_document(
     """Process uploaded document with OCR/NLP"""
     try:
         logger.info(f"Processing document: {file.filename} of type: {document_type}")
-        
-        # For now, return a mock response
-        # In a real implementation, you would:
+        # TO:DO: Implement actual OCR and NLP processing
         # 1. Save the uploaded file
         # 2. Use OCR to extract text (e.g., Tesseract, Google Vision API)
         # 3. Process the extracted text based on document type
@@ -341,9 +306,6 @@ async def extract_text_from_image(
     try:
         logger.info(f"Extracting text from image: {file.filename}")
         
-        # Mock OCR response
-        # In a real implementation, use OCR service like Tesseract or Google Vision API
-        
         return {
             "success": True,
             "message": "Text extracted successfully",
@@ -364,11 +326,7 @@ async def analyze_receipt(
     try:
         logger.info(f"Analyzing receipt: {file.filename}")
         
-        # Mock receipt analysis
-        # In a real implementation:
-        # 1. Use OCR to extract text
-        # 2. Parse receipt format
-        # 3. Extract vendor, items, amounts, dates, etc.
+        # Mock 
         
         return {
             "success": True,

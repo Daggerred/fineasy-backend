@@ -1,13 +1,3 @@
-"""
-Smart Notifications API endpoints
-
-Provides REST API for managing intelligent notifications including:
-- Sending notifications with smart prioritization
-- Managing user preferences
-- Getting notification analytics
-- Acknowledging notifications
-"""
-
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -25,8 +15,6 @@ from ..utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
-
-# Pydantic models for API requests/responses
 from pydantic import BaseModel
 
 class SendNotificationRequest(BaseModel):
@@ -85,18 +73,12 @@ async def send_notification(
     request: SendNotificationRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Send a smart notification with intelligent prioritization and scheduling.
-    """
     try:
-        # Validate notification type and priority
         try:
             notification_type = NotificationType(request.notification_type)
             priority = NotificationPriority(request.priority)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Invalid notification type or priority: {str(e)}")
-        
-        # Send notification
         success = await get_notification_service().send_notification(
             user_id=current_user['id'],
             business_id=request.business_id,
@@ -129,9 +111,6 @@ async def get_notifications(
     unread_only: bool = False,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get user's in-app notifications.
-    """
     try:
         from ..database import get_supabase
         supabase = get_supabase()
@@ -167,9 +146,6 @@ async def acknowledge_notification(
     notification_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Acknowledge a notification (mark as read/handled).
-    """
     try:
         success = await get_notification_service().acknowledge_notification(
             notification_id=notification_id,
@@ -200,9 +176,6 @@ async def acknowledge_notification(
 async def get_notification_preferences(
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get user's notification preferences.
-    """
     try:
         preferences = await get_notification_service()._get_user_preferences(current_user['id'])
         
@@ -228,9 +201,6 @@ async def update_notification_preferences(
     request: UpdatePreferencesRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Update user's notification preferences.
-    """
     try:
         # Convert request to NotificationPreference objects
         preferences = []
@@ -271,9 +241,6 @@ async def update_notification_preferences(
 async def get_notification_analytics(
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get notification analytics to help users optimize their preferences.
-    """
     try:
         analytics = await get_notification_service().get_notification_analytics(current_user['id'])
         
@@ -295,9 +262,6 @@ async def get_notification_analytics(
 async def send_test_notification(
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Send a test notification for debugging purposes.
-    """
     try:
         success = await get_notification_service().send_notification(
             user_id=current_user['id'],
@@ -323,9 +287,6 @@ async def delete_notification(
     notification_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Delete a notification.
-    """
     try:
         from ..database import get_supabase
         supabase = get_supabase()
@@ -348,9 +309,6 @@ async def delete_notification(
 async def mark_all_notifications_read(
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Mark all notifications as read for the current user.
-    """
     try:
         from ..database import get_supabase
         supabase = get_supabase()
@@ -374,9 +332,6 @@ async def send_fraud_alert(
     alert_details: Dict[str, Any],
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Send a fraud alert notification (used by fraud detection service).
-    """
     try:
         success = await get_notification_service().send_notification(
             user_id=current_user['id'],
@@ -401,9 +356,6 @@ async def send_compliance_warning(
     warning_details: Dict[str, Any],
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Send a compliance warning notification (used by compliance service).
-    """
     try:
         success = await get_notification_service().send_notification(
             user_id=current_user['id'],
@@ -428,9 +380,6 @@ async def send_business_insight(
     insight_details: Dict[str, Any],
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Send a business insight notification (used by predictive analytics service).
-    """
     try:
         success = await get_notification_service().send_notification(
             user_id=current_user['id'],

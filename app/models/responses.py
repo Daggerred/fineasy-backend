@@ -1,40 +1,34 @@
-"""
-Response models for API endpoints
-"""
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 from typing import Any, Optional, Dict, List
 from datetime import datetime
 
 
 class BaseResponse(BaseModel):
-    """Base response model"""
     success: bool = True
     message: Optional[str] = None
-    timestamp: datetime = datetime.utcnow()
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class ErrorResponse(BaseResponse):
-    """Error response model"""
+
     success: bool = False
     error_code: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
 
 
 class DataResponse(BaseResponse):
-    """Response with data payload"""
-    data: Any
+    data: Optional[Dict[str, Any]] = None
 
 
 class ListResponse(BaseResponse):
-    """Response with list data"""
-    data: List[Any]
+    data: List[Dict[str, Any]] = []
     total: Optional[int] = None
     page: Optional[int] = None
     page_size: Optional[int] = None
 
 
 class HealthResponse(BaseModel):
-    """Health check response"""
     status: str
     timestamp: datetime
     version: str
@@ -44,17 +38,96 @@ class HealthResponse(BaseModel):
 
 # Fraud Detection Response Models
 class FraudAnalysisResponse(BaseResponse):
-    """Fraud analysis response"""
-    risk_score: float
-    risk_level: str
-    alerts: List[Dict[str, Any]]
-    recommendations: List[str]
-    analysis_id: str
+    business_id: str = ""
+    risk_score: float = 0.0
+    risk_level: str = "low"
+    alerts: List[Dict[str, Any]] = []
+    recommendations: List[str] = []
+    analysis_id: str = ""
+    analysis_metadata: Optional[Dict[str, Any]] = None
 
 
 class FraudAlertResponse(BaseResponse):
-    """Fraud alert response"""
     alert_id: str
+
+
+# ML Engine Response Models
+class ModelPerformanceMetrics(BaseModel):
+    """Model performance metrics"""
+    accuracy: float = 0.0
+    precision: Optional[float] = None
+    recall: Optional[float] = None
+    f1_score: Optional[float] = None
+    cross_val_mean: Optional[float] = None
+    cross_val_std: Optional[float] = None
+    anomaly_ratio: Optional[float] = None
+    sample_size: int = 0
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class MLModelMetadata(BaseModel):
+    """ML model metadata"""
+    model_name: str
+    model_type: str
+    version: str
+    business_id: str
+    accuracy_metrics: Dict[str, Any]
+    training_data_size: int
+    created_at: datetime
+    last_updated: datetime
+    is_active: bool = True
+
+
+class FeedbackData(BaseModel):
+    """Feedback data for model improvement"""
+    model_name: str
+    prediction_id: str
+    actual_outcome: Optional[Dict[str, Any]] = None
+    feedback_score: float
+    feedback_text: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Additional ML Engine Models
+class ModelTrainingRequest(BaseModel):
+    """Request model for training ML models"""
+    model_type: str
+    business_id: str
+    training_data: Optional[Dict[str, Any]] = None
+    hyperparameters: Optional[Dict[str, Any]] = None
+    validation_split: float = 0.2
+
+
+class ModelTrainingResponse(BaseResponse):
+    """Response model for training results"""
+    model_name: str
+    model_version: str
+    training_accuracy: float
+    validation_accuracy: float
+    training_time: float
+    model_size: int
+
+
+class ModelDeploymentResponse(BaseResponse):
+    """Response model for model deployment"""
+    model_name: str
+    deployment_id: str
+    endpoint_url: Optional[str] = None
+    status: str
+
+
+class ModelPerformanceResponse(BaseResponse):
+    """Response model for model performance metrics"""
+    model_name: str
+    metrics: ModelPerformanceMetrics
+    comparison_data: Optional[Dict[str, Any]] = None
+
+
+class FeedbackResponse(BaseResponse):
+    """Response model for feedback submission"""
+    feedback_id: str
+    model_name: str
+    processed: bool = True
     alert_type: str
     severity: str
     description: str
@@ -64,7 +137,6 @@ class FraudAlertResponse(BaseResponse):
 
 # Insights Response Models
 class InsightResponse(BaseResponse):
-    """Business insight response"""
     insight_id: str
     insight_type: str
     title: str
@@ -291,7 +363,6 @@ class RiskAssessment(BaseModel):
 
 
 class OpportunityAnalysis(BaseModel):
-    """Opportunity analysis model"""
     opportunity_type: str
     potential_value: float
     effort_required: str
@@ -299,7 +370,6 @@ class OpportunityAnalysis(BaseModel):
 
 
 class CompetitorInsight(BaseModel):
-    """Competitor insight model"""
     competitor_name: str
     market_share: float
     strengths: List[str]
@@ -307,7 +377,6 @@ class CompetitorInsight(BaseModel):
 
 
 class SeasonalPattern(BaseModel):
-    """Seasonal pattern model"""
     pattern_name: str
     peak_months: List[str]
     impact_percentage: float
@@ -318,7 +387,6 @@ class SeasonalPattern(BaseModel):
 
 
 class MLModelMetadata(BaseModel):
-    """ML model metadata model"""
     model_name: str
     model_version: str
     model_type: str
@@ -326,9 +394,7 @@ class MLModelMetadata(BaseModel):
     last_trained: Optional[datetime] = None
     status: str = "active"
     parameters: Optional[Dict[str, Any]] = None
-# Invoice Response Models
 class InvoiceGenerationResponse(BaseResponse):
-    """Invoice generation response"""
     invoice_id: Optional[str] = None
     invoice_data: Optional[Dict[str, Any]] = None
     extracted_entities: Optional[Dict[str, Any]] = None
@@ -336,19 +402,16 @@ class InvoiceGenerationResponse(BaseResponse):
 
 
 class ParseTextResponse(BaseResponse):
-    """Text parsing response"""
     parsed_data: Dict[str, Any]
     entities: Dict[str, Any]
     confidence: float
 
 
 class EntityResolutionResponse(BaseResponse):
-    """Entity resolution response"""
     resolved_entities: Dict[str, Any]
     confidence_scores: Dict[str, float]
 
 
 class InvoicePreviewResponse(BaseResponse):
-    """Invoice preview response"""
     preview_data: Dict[str, Any]
     validation_results: Dict[str, Any]

@@ -1,10 +1,3 @@
-"""
-Resource Management for ML Models and Cache Optimization
-
-Manages memory usage, model lifecycle, and performance optimization
-for the AI backend services.
-"""
-
 import asyncio
 import logging
 import psutil
@@ -22,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 class ResourceType(str, Enum):
-    """Types of resources being managed"""
     MEMORY = "memory"
     CPU = "cpu"
     DISK = "disk"
@@ -52,7 +44,6 @@ class ResourceMetrics:
 
 @dataclass
 class ModelResourceUsage:
-    """Resource usage for a specific ML model"""
     model_name: str
     model_version: str
     memory_mb: float

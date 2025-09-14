@@ -45,16 +45,12 @@ async def background_generate_insights(business_id: str):
 async def get_business_insights(
     business_id: str,
     background_tasks: BackgroundTasks,
-    force_refresh: bool = Query(False, description="Force refresh insights"),
-    token: str = Depends(security)):
+    force_refresh: bool = Query(False, description="Force refresh insights")):
     """Caching code aaa soo jaa bhai for business insights"""
     try:
-        # Verify authentication (bypass for development)
-        user_id = await verify_token(token.credentials if hasattr(token, 'credentials') else str(token))
-        if not user_id:
-            # For development, allow access with a warning
-            logger.warning(f"Authentication bypassed for development - business_id: {business_id}")
-            user_id = "dev_user"
+        # For development, bypass authentication
+        logger.warning(f"Authentication bypassed for development - business_id: {business_id}")
+        user_id = "dev_user"
         
         cache_key = f"insights:{business_id}"
 

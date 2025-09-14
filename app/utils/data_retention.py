@@ -13,7 +13,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class RetentionPolicy(Enum):
-    """Data retention policy types"""
+
     IMMEDIATE = "immediate"  # Delete immediately after processing
     SHORT_TERM = "short_term"  # 30 days
     MEDIUM_TERM = "medium_term"  # 90 days
@@ -80,7 +80,6 @@ class DataRetentionManager:
         }
     
     async def run_retention_cleanup(self) -> Dict[str, Any]:
-        """Run data retention cleanup process"""
         cleanup_stats = {
             "processed_categories": 0,
             "records_purged": 0,

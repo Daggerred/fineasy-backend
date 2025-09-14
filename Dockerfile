@@ -65,7 +65,7 @@ EXPOSE 8000
 
 # Health check with proper curl installation check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=5)" || exit 1
+    CMD python -c "import requests; import os; port=os.environ.get('PORT', '8000'); requests.get(f'http://localhost:{port}/health', timeout=5)" || exit 1
 
 # Run the application with proper error handling
-CMD ["python", "start_docker.py"]
+CMD ["python", "start_server.py"]

@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/v1/fraud", tags=["fraud-detection"])
 security = HTTPBearer()
 
 
-# Request Models
+
 class FraudAnalysisRequest(BaseModel):
     """Request model for fraud analysis"""
     business_id: str = Field(..., description="Business ID to analyze")
@@ -51,7 +51,7 @@ class FraudAnalysisRequest(BaseModel):
 
 
 class AlertUpdateRequest(BaseModel):
-    """Request model for updating fraud alert status"""
+    
     status: str = Field(..., description="New alert status")
     resolution_notes: Optional[str] = Field(None, description="Resolution notes")
     
@@ -65,7 +65,7 @@ class AlertUpdateRequest(BaseModel):
 
 
 class BulkAnalysisRequest(BaseModel):
-    """Request model for bulk fraud analysis"""
+    
     business_ids: List[str] = Field(..., description="List of business IDs to analyze")
     analysis_types: Optional[List[str]] = Field(
         default=["duplicates", "mismatches"],
@@ -80,7 +80,6 @@ class BulkAnalysisRequest(BaseModel):
         return v
 
 
-# Response Models
 class FraudAlertSummary(BaseModel):
     """Summary of fraud alerts"""
     total_alerts: int
@@ -92,7 +91,6 @@ class FraudAlertSummary(BaseModel):
 
 
 class FraudAnalysisDetailResponse(FraudAnalysisResponse):
-    """Detailed fraud analysis response"""
     alert_summary: FraudAlertSummary
     recommendations: List[str] = Field(default_factory=list)
     next_analysis_recommended: Optional[datetime] = None
@@ -105,35 +103,25 @@ async def analyze_fraud(
     token: str = Depends(security),
     fastapi_request: Request = None
 ):
-    """
-    Comprehensive fraud analysis for a business
-    
-    Performs various types of fraud detection including:
-    - Duplicate invoice detection using fuzzy matching
-    - Payment mismatch detection between invoices and transactions
-    - Suspicious transaction pattern analysis using ML
-    - Supplier duplicate billing detection
-    
-    Requirements: 1.4, 1.5, 1.6
-    """
+   
     try:
-        # Verify authentication token (bypass for development)
+        
         user_id = await verify_token(token.credentials if hasattr(token, 'credentials') else str(token))
         if not user_id:
-            # For development, allow access with a warning
+           
             logger.warning(f"Authentication bypassed for development - business_id: {request.business_id}")
             user_id = "dev_user"
         
-        # Extract user_id if it's a dict
+       
         if isinstance(user_id, dict):
             user_id = user_id.get('user_id', 'dev_user')
         
-        # Apply security middleware validation
+      
         security_context = await security_middleware.validate_request(
             fastapi_request, request.business_id, "fraud_detection"
         )
         
-        # Log fraud analysis start
+        
         audit_logger.log_ai_operation(
             event_type=AuditEventType.FRAUD_DETECTION,
             business_id=request.business_id,
@@ -149,26 +137,26 @@ async def analyze_fraud(
         
         logger.info(f"Starting fraud analysis for business: {request.business_id} by user: {user_id}")
         
-        # Initialize fraud detector
+        
         detector = FraudDetector()
         
-        # Perform fraud analysis
+       
         result = await detector.analyze_fraud(request.business_id)
         
         if not result.success:
             logger.error(f"Fraud analysis failed for business {request.business_id}: {result.message}")
             raise HTTPException(status_code=500, detail=result.message)
         
-        # Generate alert summary
+       
         alert_summary = _generate_alert_summary(result.alerts)
         
-        # Generate recommendations
+       
         recommendations = _generate_recommendations(result.alerts, result.risk_score)
         
-        # Calculate next analysis time
+        
         next_analysis = _calculate_next_analysis_time(result.risk_score)
         
-        # Log successful analysis
+      
         logger.info(f"Fraud analysis completed for business {request.business_id}: "
                    f"{len(result.alerts)} alerts, risk score: {result.risk_score:.2f}")
         
@@ -198,14 +186,7 @@ async def get_fraud_alerts(
     offset: int = Query(0, ge=0, description="Number of alerts to skip"),
     token: str = Depends(security)
 ):
-    """
-    Get existing fraud alerts for a business
     
-    Retrieves fraud alerts with optional filtering and pagination.
-    Supports filtering by alert type and resolution status.
-    
-    Requirements: 1.4, 1.5
-    """
     try:
         # Verify authentication token
         user_info = await verify_token(token.credentials)
@@ -218,10 +199,10 @@ async def get_fraud_alerts(
                 detail=f"Invalid alert type: {alert_type}. Valid types: {[t.value for t in FraudType]}"
             )
         
-        # Initialize fraud detector
+        
         detector = FraudDetector()
         
-        # Get alerts from database
+        
         alerts = await detector.get_fraud_alerts(
             business_id=business_id,
             include_resolved=include_resolved,
@@ -230,7 +211,7 @@ async def get_fraud_alerts(
             offset=offset
         )
         
-        # Calculate risk score from current alerts
+        
         risk_score = detector._calculate_risk_score(alerts)
         
         logger.info(f"Retrieved {len(alerts)} fraud alerts for business {business_id}")
@@ -265,23 +246,16 @@ async def update_fraud_alert(
     request: AlertUpdateRequest = Body(...),
     token: str = Depends(security)
 ):
-    """
-    Update fraud alert status and resolution
     
-    Allows users to mark alerts as resolved, false positives, or under investigation.
-    Supports adding resolution notes for audit trail.
-    
-    Requirements: 1.5, 1.6
-    """
     try:
-        # Verify authentication token
+       
         user_info = await verify_token(token.credentials)
         logger.info(f"Updating fraud alert {alert_id} by user: {user_info.get('user_id')}")
         
-        # Initialize fraud detector
+      
         detector = FraudDetector()
         
-        # Update alert status
+       
         updated_alert = await detector.update_fraud_alert(
             alert_id=alert_id,
             status=request.status,
@@ -316,14 +290,7 @@ async def bulk_fraud_analysis(
     request: BulkAnalysisRequest,
     token: str = Depends(security)
 ):
-    """
-    Perform fraud analysis for multiple businesses
     
-    Efficiently analyzes fraud for multiple businesses in a single request.
-    Useful for administrative dashboards and batch processing.
-    
-    Requirements: 1.4, 1.6
-    """
     try:
         # Verify authentication token
         user_info = await verify_token(token.credentials)
@@ -389,14 +356,6 @@ async def get_fraud_statistics(
     days: int = Query(30, ge=1, le=365, description="Number of days for statistics"),
     token: str = Depends(security)
 ):
-    """
-    Get fraud detection statistics for a business
-    
-    Provides statistical overview of fraud detection results over time.
-    Useful for dashboards and trend analysis.
-    
-    Requirements: 1.6
-    """
     try:
         # Verify authentication token
         user_info = await verify_token(token.credentials)
@@ -405,7 +364,7 @@ async def get_fraud_statistics(
         # Initialize fraud detector
         detector = FraudDetector()
         
-        # Get fraud statistics
+        # Iske baad khana khaaaa
         stats = await detector.get_fraud_statistics(business_id, days)
         
         logger.info(f"Retrieved fraud statistics for business {business_id} over {days} days")
@@ -428,7 +387,7 @@ async def get_fraud_statistics(
         )
 
 
-# Helper Functions
+
 def _generate_alert_summary(alerts: List[FraudAlert]) -> FraudAlertSummary:
     """Generate summary statistics for fraud alerts"""
     if not alerts:
@@ -441,18 +400,15 @@ def _generate_alert_summary(alerts: List[FraudAlert]) -> FraudAlertSummary:
             latest_alert_time=None
         )
     
-    # Categorize alerts by risk level
     high_risk = len([a for a in alerts if a.confidence_score >= 0.8])
     medium_risk = len([a for a in alerts if 0.5 <= a.confidence_score < 0.8])
     low_risk = len([a for a in alerts if a.confidence_score < 0.5])
     
-    # Count alerts by type
     alert_types = {}
     for alert in alerts:
         alert_type = alert.type.value
         alert_types[alert_type] = alert_types.get(alert_type, 0) + 1
     
-    # Find latest alert time
     latest_alert_time = max(alert.detected_at for alert in alerts) if alerts else None
     
     return FraudAlertSummary(
@@ -466,7 +422,6 @@ def _generate_alert_summary(alerts: List[FraudAlert]) -> FraudAlertSummary:
 
 
 def _generate_recommendations(alerts: List[FraudAlert], risk_score: float) -> List[str]:
-    """Generate actionable recommendations based on fraud analysis"""
     recommendations = []
     
     if risk_score >= 0.8:
@@ -474,7 +429,6 @@ def _generate_recommendations(alerts: List[FraudAlert], risk_score: float) -> Li
     elif risk_score >= 0.5:
         recommendations.append("Medium fraud risk detected. Schedule review of flagged transactions.")
     
-    # Type-specific recommendations
     alert_types = [alert.type for alert in alerts]
     
     if FraudType.DUPLICATE_INVOICE in alert_types:
@@ -496,15 +450,13 @@ def _generate_recommendations(alerts: List[FraudAlert], risk_score: float) -> Li
 
 
 def _calculate_next_analysis_time(risk_score: float) -> datetime:
-    """Calculate when next fraud analysis should be performed"""
     base_time = datetime.utcnow()
     
     if risk_score >= 0.8:
-        # High risk: analyze daily
+        
         return base_time + timedelta(days=1)
     elif risk_score >= 0.5:
-        # Medium risk: analyze every 3 days
         return base_time + timedelta(days=3)
     else:
-        # Low risk: analyze weekly
+       
         return base_time + timedelta(days=7)

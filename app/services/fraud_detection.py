@@ -61,10 +61,29 @@ class FraudDetector:
             
             logger.info(f"Fraud analysis completed for business {business_id}: {len(all_alerts)} alerts, risk score: {risk_score}")
             
+            # Determine risk level
+            if risk_score >= 0.8:
+                risk_level = "high"
+            elif risk_score >= 0.5:
+                risk_level = "medium"
+            else:
+                risk_level = "low"
+            
+            # Generate recommendations
+            recommendations = self._generate_recommendations(all_alerts, risk_score)
+            
+            # Generate analysis ID
+            analysis_id = f"fraud_{business_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            
             return FraudAnalysisResponse(
+                success=True,
+                message="Fraud analysis completed successfully",
                 business_id=business_id,
-                alerts=all_alerts,
+                alerts=[alert.dict() if hasattr(alert, 'dict') else alert for alert in all_alerts],
                 risk_score=risk_score,
+                risk_level=risk_level,
+                recommendations=recommendations,
+                analysis_id=analysis_id,
                 analysis_metadata={
                     "duplicate_alerts": len(duplicate_alerts),
                     "mismatch_alerts": len(mismatch_alerts),
@@ -81,7 +100,11 @@ class FraudDetector:
                 message=f"Fraud analysis failed: {str(e)}",
                 business_id=business_id,
                 alerts=[],
-                risk_score=0.0
+                risk_score=0.0,
+                risk_level="low",
+                recommendations=["Unable to perform fraud analysis due to technical issues"],
+                analysis_id=f"fraud_error_{business_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
+                analysis_metadata={"error": str(e)}
             )
     
     async def detect_duplicates(self, business_id: str) -> List[FraudAlert]:
@@ -952,4 +975,51 @@ class FraudDetector:
                 "risk_levels": {"high": 0, "medium": 0, "low": 0},
                 "metrics": {"average_risk_score": 0.0, "resolution_rate": 0.0, "false_positive_rate": 0.0},
                 "trends": {"daily_alert_counts": {}}
-            }
+            } 
+   
+    def _generate_recommendations(self, alerts: List[FraudAlert], risk_score: float) -> List[str]:
+        """Generate fraud prevention recommendations based on alerts and risk score"""
+        recommendations = []
+        
+        if not alerts:
+            recommendations.append("No fraud risks detected. Continue monitoring transactions regularly.")
+            return recommendations
+        
+        # Risk level based recommendations
+        if risk_score >= 0.8:
+            recommendations.append("🚨 HIGH RISK: Immediate review of all flagged transactions required.")
+            recommendations.append("Consider temporarily suspending automated payments until review is complete.")
+        elif risk_score >= 0.5:
+            recommendations.append("⚠️ MEDIUM RISK: Schedule review of flagged transactions within 24 hours.")
+        else:
+            recommendations.append("ℹ️ LOW RISK: Monitor flagged transactions during regular business reviews.")
+        
+        # Alert type specific recommendations
+        alert_types = [alert.type for alert in alerts]
+        
+        if FraudType.DUPLICATE_INVOICE in alert_types:
+            recommendations.append("📋 Implement invoice number validation to prevent duplicate entries.")
+            recommendations.append("Set up automated duplicate detection in your invoice processing system.")
+        
+        if FraudType.PAYMENT_MISMATCH in alert_types:
+            recommendations.append("💰 Reconcile payment records with invoice amounts regularly.")
+            recommendations.append("Implement three-way matching: Purchase Order, Invoice, and Receipt.")
+        
+        if FraudType.SUSPICIOUS_PATTERN in alert_types:
+            recommendations.append("🔍 Review unusual transaction patterns and timing.")
+            recommendations.append("Consider implementing transaction limits and approval workflows.")
+        
+        if FraudType.SUPPLIER_DUPLICATE in alert_types:
+            recommendations.append("🏢 Verify supplier invoices against purchase orders before payment.")
+            recommendations.append("Maintain a centralized supplier database with validation rules.")
+        
+        # Volume based recommendations
+        if len(alerts) > 10:
+            recommendations.append("🤖 Consider implementing automated fraud prevention controls.")
+            recommendations.append("Set up real-time alerts for suspicious transaction patterns.")
+        
+        # General security recommendations
+        recommendations.append("🔐 Ensure proper segregation of duties in financial processes.")
+        recommendations.append("📊 Schedule regular fraud risk assessments for your business.")
+        
+        return recommendations
